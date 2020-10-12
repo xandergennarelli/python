@@ -1,7 +1,7 @@
 from PIL import Image
 
 def rgb2hex(r, g, b):
-    return '#{:02x}{:02x}{:02x}'.format(r, g, b)
+  return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
 def scan(imName, fNameOut):
   im = Image.open(imName, 'r').convert('RGB')
