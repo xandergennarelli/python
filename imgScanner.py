@@ -10,9 +10,9 @@ def scan(imName, fNameOut):
   for r, g, b in pix_val:
     pix_hex.append(rgb2hex(r, g, b))
 
-  h, w = im.size
+  w, h = im.size
   o = open(fNameOut, 'w')
-  strSize = '' + str(h) + ' ' + str(w) + '\n'
+  strSize = '' + str(w) + ' ' + str(h) + '\n'
   o.write(strSize)
 
   count = 0
@@ -23,10 +23,11 @@ def scan(imName, fNameOut):
       '#000000': 1,
       '#ff0000': 2,
       '#00ff21': 3,
-      '#0026ff': 4,
-      '#ffd800': 5
+      '#00ffff': 4,
+      '#ffd800': 5,
+      '#404040': 6
     }
-    strVal = str(switcher.get(hex, "6")) + ' '
+    strVal = str(switcher.get(hex, "7")) + ' '
     o.write(strVal)
     if count == w:
       count = 0
