@@ -49,3 +49,10 @@ Thumbs.db
 *.BMP
 *.gif
 *.GIF
+
+# Python #
+##########
+__*__
+
+# Misc #
+########
