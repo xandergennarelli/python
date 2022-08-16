@@ -1,4 +1,4 @@
-wfrom PyPDF2 import PdfWriter, PdfReader
+from PyPDF2 import PdfWriter, PdfReader
 import glob
 
 left = 30
