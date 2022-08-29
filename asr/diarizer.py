@@ -1,14 +1,20 @@
 from pyannote.audio import Pipeline
 from pydub import AudioSegment
 from pathlib import Path
-import json
+import json, sys
 
-RESOURCE_PATH = "resources/"
+RESOURCES_PATH = "/home/xander/deve/python/asr/resources/"
+TMP_PATH = "/home/xander/deve/python/asr/tmp/"
+CLIPS_PATH = TMP_PATH + "clips/"
+
+class FileNameError(Exception):
+    pass
+
 
 def diarize(fileName):
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization")
 
-    diarization = pipeline(RESOURCE_PATH + fileName)
+    diarization = pipeline(RESOURCES_PATH + fileName)
 
     segments = list()
     for turn, _, speaker in diarization.itertracks(yield_label=True):
@@ -16,44 +22,61 @@ def diarize(fileName):
 
     return segments
 
-def splitAudioFile(fileName, segments):
-    sourcePath = RESOURCE_PATH + fileName
+
+def divide(fileName, segments):
+    sourcePath = RESOURCES_PATH + fileName
     audio = AudioSegment.from_file(sourcePath)
 
-    with open(sourcepath[:sourcePath.rfind(".")] + ".json", "w") as file:
-        for i, segment in enumerated(segments):
-            segPath = RESOURCE_PATH + str(i) + "_" + segment[0] + "_" + fileName
+    dataList = list()
+    header = {
+        "source_path": sourcePath,
+        "source_name": sourcePath[sourcePath.rfind("/"):sourcePath.rfind(".")],
+        "source_format": sourcePath[sourcePath.rfind(".")+1:],
+        "segments": len(segments)
+    }
+    dataList.append(header)
 
-            clipInfo = {
-                "sourcename": fileName,
-                "speaker": segment[0],
-                "start": segment[1],
-                "end": segment[2],
-                "path": segPath
-            }
+    for i, segment in enumerate(segments):
+        segPath = CLIPS_PATH + str(i) + "_" + segment[0] + "_" + fileName
 
-            clip = audio[clipInfo["start"]:clipInfo["end"]]
-            clip.export(segPath)
+        clipData = {
+            "segment": i,
+            "segment_path": segPath,
+            "speaker": segment[0],
+            "start": segment[1],
+            "end": segment[2],
+            "path": segPath,
+            "transcript": ""
+        }
 
-            clipInfo_json = json.dumps(clipInfo, indent=4)
-            file.write(clipInfo_json)
+        clip = audio[clipData["start"]:clipData["end"]]
+        clip.export(segPath, format="wav")
 
-    # is this done?
+        dataList.append(clipData)
+
+    return dataList
+
+
+def toJson(list):
+    with open(TMP_PATH + list[0]["source_name"] + "-doc.json", "w") as file:
+        json.dump(list, file, indent=4)
+
 
 def main():
-    fileName = ""
     try:
-        if sys.args[1] == "-n": fileName = sys.args[2]
+        fileName = ""
 
-        if not Path(RESOURCE_PATH + fileName).is_file(): raise NameError(fileName)
-    except NameError:
+        if sys.argv[1] == "-n": fileName = sys.argv[2]
+        if not Path(RESOURCES_PATH + fileName).is_file(): raise FileNameError(fileName)
+    
+        segments = diarize(fileName)
+
+        dataList = divide(fileName, segments)
+
+        toJson(dataList)
+
+    except FileNameError:
         print("ERROR: Bad or no file name.")
-
-    segments = diarize(fileName)
-
-    splitAudioFile(fileName, segments)
-
 
 
 if __name__ == "__main__": main()
-# use segments to break up audio file
