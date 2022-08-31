@@ -6,9 +6,17 @@ import json, sys
 RESOURCES_PATH = "/home/xander/deve/python/asr/resources/"
 TMP_PATH = "/home/xander/deve/python/asr/tmp/"
 CLIPS_PATH = TMP_PATH + "clips/"
+MODEL_SAMPLE_RATE = 16000
 
 class FileNameError(Exception):
     pass
+
+
+def correctAudio(audio)
+    if audio.frame_rate != MODEL_SAMPLE_RATE or audio.channels != 1:
+        audio = audio.resample(sample_rate_Hz=MODEL_SAMPLE_RATE, channels=1)
+
+    return audio
 
 
 def diarize(fileName):
@@ -25,7 +33,7 @@ def diarize(fileName):
 
 def divide(fileName, segments):
     sourcePath = RESOURCES_PATH + fileName
-    audio = AudioSegment.from_file(sourcePath)
+    audio = correctAudio(AudioSegment.from_file(sourcePath))
 
     dataList = list()
     header = {
@@ -79,4 +87,5 @@ def main():
         print("ERROR: Bad or no file name.")
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__": 
+    main()
