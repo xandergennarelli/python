@@ -1,22 +1,55 @@
 from stt import Model
-import wave, numpy, json
+from pathlib import Path
+import wave, numpy, json, sys
+from diarizer import toJson, FileError
 
+RESOURCES_PATH = "/home/xander/deve/python/asr/resources/"
+TMP_PATH = "/home/xander/deve/python/asr/tmp/"
 MODEL_PATH = "/home/xander/deve/python/asr/resources/model.tflite"
 
-def transcribe():
+def transcribe(data_path):
 	model = Model(MODEL_PATH)
-
 	sample_rate = model.sampleRate()
 
-	# for clip in clips
-		file = wave.open(clipPath, "rb")
+	try:
+		with open(data_path) as dataFile:
+			dataList = json.load(dataFile)
 
-		audio = numpy.frombuffer(file.readframes(file.getnframes()), numpy.int16)
+		if not dataList:
+			raise FileError(data_path)
+	except FileError:
+		print("ERROR: Json file not found.")
 
-		transcript = model.stt(audio)
+	for clip in dataList[1:]:
+		file = wave.open(clip["segment_path"], "rb")
 
-		# add transcript to json file
+		audioArray = numpy.frombuffer(file.readframes(file.getnframes()), numpy.int16)
+
+		transcript = model.stt(audioArray)
+
+		clip["transcript"] = transcript
+
+	return dataList
+
+
+def format():
+	print("todo")
+
+
+def main():
+    try:
+        dataPath = ""
+
+        if sys.argv[1] == "-n": dataPath = TMP_PATH + sys.argv[2]
+        if not Path(dataPath).is_file(): raise FileError(dataPath)
+
+        dataList = transcribe(dataPath)
+
+        toJson(dataList)
+
+    except FileError:
+        print("ERROR: Bad or no file name.")
 
 
 if __name__ == "__main__": 
-	main()
+    main()

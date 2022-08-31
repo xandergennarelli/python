@@ -6,23 +6,26 @@ import json, sys
 RESOURCES_PATH = "/home/xander/deve/python/asr/resources/"
 TMP_PATH = "/home/xander/deve/python/asr/tmp/"
 CLIPS_PATH = TMP_PATH + "clips/"
-MODEL_SAMPLE_RATE = 16000
+MODEL_SAMPLE_RATE = 16000 # make this not hard coded, make these all not hardcoded? ^^^
 
-class FileNameError(Exception):
+class FileError(Exception):
     pass
 
 
-def correctAudio(audio)
-    if audio.frame_rate != MODEL_SAMPLE_RATE or audio.channels != 1:
-        audio = audio.resample(sample_rate_Hz=MODEL_SAMPLE_RATE, channels=1)
+def correctAudio(audio):
+    if audio.frame_rate != MODEL_SAMPLE_RATE:
+        audio = audio.set_frame_rate(MODEL_SAMPLE_RATE)
+
+    if audio.channels != 1:
+        audio = audio.set_channels(1)
 
     return audio
 
 
-def diarize(fileName):
+def diarize(sourcePath):
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization")
 
-    diarization = pipeline(RESOURCES_PATH + fileName)
+    diarization = pipeline(sourcePath)
 
     segments = list()
     for turn, _, speaker in diarization.itertracks(yield_label=True):
@@ -31,22 +34,22 @@ def diarize(fileName):
     return segments
 
 
-def divide(fileName, segments):
-    sourcePath = RESOURCES_PATH + fileName
+def divide(sourcePath, segments):
+    sourceName = sourcePath[sourcePath.rfind("/")+1:sourcePath.rfind(".")]
+    sourceFormat = sourcePath[sourcePath.rfind(".")+1:]
     audio = correctAudio(AudioSegment.from_file(sourcePath))
 
     dataList = list()
     header = {
         "source_path": sourcePath,
-        "source_name": sourcePath[sourcePath.rfind("/"):sourcePath.rfind(".")],
-        "source_format": sourcePath[sourcePath.rfind(".")+1:],
+        "source_name": sourceName,
+        "source_format": sourceFormat,
         "segments": len(segments)
     }
     dataList.append(header)
 
-    for i, segment in enumerate(segments):
-        segPath = CLIPS_PATH + str(i) + "_" + segment[0] + "_" + fileName
-
+    for i, segment in enumerate(segments):      # @TODO: maybe use uuid?
+        segPath = CLIPS_PATH + str(i) + "_" + segment[0] + "_" + sourceName + "." + sourceFormat
         clipData = {
             "segment": i,
             "segment_path": segPath,
@@ -65,25 +68,25 @@ def divide(fileName, segments):
     return dataList
 
 
-def toJson(list):
-    with open(TMP_PATH + list[0]["source_name"] + "-doc.json", "w") as file:
-        json.dump(list, file, indent=4)
+def toJson(dataList):
+    with open(TMP_PATH + dataList[0]["source_name"] + "-doc.json", "w") as file:
+        json.dump(dataList, file, indent=4)
 
 
 def main():
     try:
-        fileName = ""
+        sourcePath = ""
 
-        if sys.argv[1] == "-n": fileName = sys.argv[2]
-        if not Path(RESOURCES_PATH + fileName).is_file(): raise FileNameError(fileName)
+        if sys.argv[1] == "-n": sourcePath = RESOURCES_PATH + sys.argv[2]
+        if not Path(sourcePath).is_file(): raise FileError(sourcePath)
     
-        segments = diarize(fileName)
+        segments = diarize(sourcePath)
 
-        dataList = divide(fileName, segments)
+        dataList = divide(sourcePath, segments)
 
         toJson(dataList)
 
-    except FileNameError:
+    except FileError:
         print("ERROR: Bad or no file name.")
 
 
